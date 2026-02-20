@@ -3,50 +3,36 @@ import { Table, Tag, Input, Select, Button, Space, message, Popconfirm } from 'a
 import { PlusOutlined, SearchOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import PageHeader from '../../components/PageHeader';
-import { getProducts, deleteProduct, getCategories } from '../../api/products';
-import type { Product, ProductCategory } from '../../types/product';
+import { useProducts, useCategories, useDeleteProduct } from '../../hooks/useProducts';
+import type { Product } from '../../types/product';
 import { formatCurrency, formatDate } from '../../utils/formatters';
 
 const ProductListPage: React.FC = () => {
   const navigate = useNavigate();
-  const [products, setProducts] = useState<Product[]>([]);
-  const [categories, setCategories] = useState<ProductCategory[]>([]);
-  const [total, setTotal] = useState(0);
-  const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState<string | undefined>();
   const [categoryId, setCategoryId] = useState<string | undefined>();
   const [page, setPage] = useState(1);
   const pageSize = 20;
 
-  const load = async () => {
-    setLoading(true);
-    try {
-      const res = await getProducts({
-        skip: (page - 1) * pageSize,
-        limit: pageSize,
-        search: search || undefined,
-        status,
-        category_id: categoryId,
-      });
-      setProducts(res.items);
-      setTotal(res.total);
-    } catch {
-      message.error('Failed to load products');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { data: productsData, isLoading: loading } = useProducts({
+    skip: (page - 1) * pageSize,
+    limit: pageSize,
+    search: search || undefined,
+    status,
+    category_id: categoryId,
+  });
 
-  useEffect(() => { load(); }, [page, status, categoryId]);
-  useEffect(() => { getCategories().then(setCategories).catch(() => {}); }, []);
+  const { data: categories = [] } = useCategories();
+  const deleteMutation = useDeleteProduct();
 
-  const handleSearch = () => { setPage(1); load(); };
+  const products = productsData?.items || [];
+  const total = productsData?.total || 0;
 
-  const handleDelete = async (id: string) => {
-    await deleteProduct(id);
-    message.success('Product deactivated');
-    load();
+  const handleSearch = () => { setPage(1); };
+
+  const handleDelete = (id: string) => {
+    deleteMutation.mutate(id);
   };
 
   const columns = [
