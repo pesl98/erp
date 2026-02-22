@@ -2,6 +2,10 @@
 
 A full-stack ERP application for webshop operations management, built with FastAPI, React, TypeScript, and PostgreSQL.
 
+## Screenshots
+
+![Edit Warehouse](warehouse-edit-screenshot.jpg)
+
 ## Features
 
 - **Product Management** - Create/edit products with SKU, categories, pricing, dimensions, reorder points
