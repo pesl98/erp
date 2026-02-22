@@ -1,11 +1,18 @@
-import React, { useEffect, useState } from 'react';
-import { Form, Input, Button, Card, Row, Col, message, Spin, Collapse, List, Space, Modal, Select, InputNumber, Switch } from 'antd';
+import React, { useEffect, useState, useCallback } from 'react';
+import { Form, Input, Button, Card, Row, Col, message, Spin, Collapse, List, Space, Modal, Select, InputNumber } from 'antd';
 import { PlusOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useNavigate, useParams } from 'react-router-dom';
 import PageHeader from '../../components/PageHeader';
 import { createWarehouse, getWarehouse, updateWarehouse, createZone, deleteZone, createLocation, deleteLocation } from '../../api/warehouse';
 import { ZONE_TYPES } from '../../utils/constants';
 import type { Warehouse, Zone } from '../../types/warehouse';
+
+interface WarehouseFormValues {
+  code: string;
+  name: string;
+  address?: string;
+  is_active?: boolean;
+}
 
 const WarehouseFormPage: React.FC = () => {
   const navigate = useNavigate();
@@ -20,40 +27,96 @@ const WarehouseFormPage: React.FC = () => {
   const [locForm] = Form.useForm();
   const isEdit = !!id;
 
-  const loadWarehouse = async () => {
+  const loadWarehouse = useCallback(async () => {
     if (!id) return;
     setLoading(true);
     try {
       const w = await getWarehouse(id);
       setWarehouse(w);
       form.setFieldsValue(w);
-    } catch { message.error('Not found'); navigate('/warehouses'); }
-    finally { setLoading(false); }
-  };
+    } catch {
+      message.error('Warehouse not found');
+      navigate('/warehouses');
+    } finally {
+      setLoading(false);
+    }
+  }, [id, form, navigate]);
 
-  useEffect(() => { loadWarehouse(); }, [id]);
+  useEffect(() => { loadWarehouse(); }, [loadWarehouse]);
 
-  const onFinish = async (values: any) => {
+  const onFinish = async (values: WarehouseFormValues) => {
     setSubmitting(true);
     try {
-      if (isEdit) { await updateWarehouse(id!, values); message.success('Updated'); }
-      else { const w = await createWarehouse(values); message.success('Created'); navigate(`/warehouses/${w.id}/edit`); return; }
+      if (isEdit) {
+        await updateWarehouse(id!, values);
+        message.success('Warehouse updated');
+      } else {
+        const w = await createWarehouse(values);
+        message.success('Warehouse created');
+        navigate(`/warehouses/${w.id}/edit`);
+        return;
+      }
       loadWarehouse();
-    } catch (err: any) { message.error(err.response?.data?.detail || 'Error'); }
-    finally { setSubmitting(false); }
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { data?: { detail?: string } } };
+      message.error(axiosErr.response?.data?.detail || 'Error saving warehouse');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
-  const handleAddZone = async (values: any) => {
-    try { await createZone(id!, values); message.success('Zone added'); setZoneModal(false); zoneForm.resetFields(); loadWarehouse(); }
-    catch (err: any) { message.error(err.response?.data?.detail || 'Error'); }
+  const handleAddZone = async (values: { code: string; name: string; zone_type?: string }) => {
+    try {
+      await createZone(id!, values);
+      message.success('Zone added');
+      setZoneModal(false);
+      zoneForm.resetFields();
+      loadWarehouse();
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { data?: { detail?: string } } };
+      message.error(axiosErr.response?.data?.detail || 'Error adding zone');
+    }
   };
 
-  const handleAddLocation = async (values: any) => {
-    try { await createLocation(locModal!, values); message.success('Location added'); setLocModal(null); locForm.resetFields(); loadWarehouse(); }
-    catch (err: any) { message.error(err.response?.data?.detail || 'Error'); }
+  const handleAddLocation = async (values: { code: string; label?: string; max_capacity?: number }) => {
+    try {
+      await createLocation(locModal!, values);
+      message.success('Location added');
+      setLocModal(null);
+      locForm.resetFields();
+      loadWarehouse();
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { data?: { detail?: string } } };
+      message.error(axiosErr.response?.data?.detail || 'Error adding location');
+    }
   };
 
   if (loading) return <Spin size="large" style={{ display: 'block', margin: '100px auto' }} />;
+
+  const collapseItems = warehouse?.zones?.map((zone: Zone) => ({
+    key: zone.id,
+    label: `${zone.code} - ${zone.name} ${zone.zone_type ? `(${zone.zone_type})` : ''}`,
+    extra: (
+      <Space>
+        <Button size="small" aria-label={`Add location to zone ${zone.code}`} icon={<PlusOutlined />} onClick={(e) => { e.stopPropagation(); setLocModal(zone.id); }}>Location</Button>
+        <Button size="small" danger aria-label={`Delete zone ${zone.code}`} icon={<DeleteOutlined />} onClick={async (e) => { e.stopPropagation(); await deleteZone(zone.id); message.success('Zone deleted'); loadWarehouse(); }} />
+      </Space>
+    ),
+    children: (
+      <List
+        size="small"
+        dataSource={zone.locations}
+        renderItem={(loc) => (
+          <List.Item actions={[
+            <Button size="small" danger aria-label={`Delete location ${loc.code}`} icon={<DeleteOutlined />} onClick={async () => { await deleteLocation(loc.id); message.success('Location deleted'); loadWarehouse(); }} />,
+          ]}>
+            <strong>{loc.code}</strong> {loc.label ? `- ${loc.label}` : ''} {loc.max_capacity ? `(cap: ${loc.max_capacity})` : ''}
+          </List.Item>
+        )}
+        locale={{ emptyText: 'No locations' }}
+      />
+    ),
+  })) ?? [];
 
   return (
     <div>
@@ -72,33 +135,7 @@ const WarehouseFormPage: React.FC = () => {
       {isEdit && warehouse?.zones && (
         <Card title="Zones & Locations" extra={<Button icon={<PlusOutlined />} onClick={() => setZoneModal(true)}>Add Zone</Button>}>
           {warehouse.zones.length === 0 ? <p>No zones yet</p> : (
-            <Collapse>
-              {warehouse.zones.map((zone) => (
-                <Collapse.Panel
-                  key={zone.id}
-                  header={`${zone.code} - ${zone.name} ${zone.zone_type ? `(${zone.zone_type})` : ''}`}
-                  extra={
-                    <Space>
-                      <Button size="small" icon={<PlusOutlined />} onClick={(e) => { e.stopPropagation(); setLocModal(zone.id); }}>Location</Button>
-                      <Button size="small" danger icon={<DeleteOutlined />} onClick={async (e) => { e.stopPropagation(); await deleteZone(zone.id); message.success('Deleted'); loadWarehouse(); }} />
-                    </Space>
-                  }
-                >
-                  <List
-                    size="small"
-                    dataSource={zone.locations}
-                    renderItem={(loc) => (
-                      <List.Item actions={[
-                        <Button size="small" danger icon={<DeleteOutlined />} onClick={async () => { await deleteLocation(loc.id); message.success('Deleted'); loadWarehouse(); }} />,
-                      ]}>
-                        <strong>{loc.code}</strong> {loc.label ? `- ${loc.label}` : ''} {loc.max_capacity ? `(cap: ${loc.max_capacity})` : ''}
-                      </List.Item>
-                    )}
-                    locale={{ emptyText: 'No locations' }}
-                  />
-                </Collapse.Panel>
-              ))}
-            </Collapse>
+            <Collapse items={collapseItems} />
           )}
         </Card>
       )}

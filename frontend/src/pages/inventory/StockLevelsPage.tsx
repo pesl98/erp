@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { Table, Input, Tag, message } from 'antd';
 import { SearchOutlined } from '@ant-design/icons';
 import PageHeader from '../../components/PageHeader';
@@ -14,17 +14,20 @@ const StockLevelsPage: React.FC = () => {
   const [page, setPage] = useState(1);
   const pageSize = 20;
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     try {
       const res = await getStockLevels({ skip: (page - 1) * pageSize, limit: pageSize, search: search || undefined });
       setItems(res.items);
       setTotal(res.total);
-    } catch { message.error('Failed to load'); }
-    finally { setLoading(false); }
-  };
+    } catch {
+      message.error('Failed to load stock levels');
+    } finally {
+      setLoading(false);
+    }
+  }, [page, search]);
 
-  useEffect(() => { load(); }, [page]);
+  useEffect(() => { load(); }, [load]);
 
   const columns = [
     { title: 'SKU', dataIndex: 'product_sku', key: 'sku', width: 120 },
@@ -34,9 +37,11 @@ const StockLevelsPage: React.FC = () => {
     { title: 'Available', dataIndex: 'total_available', key: 'available', render: formatNumber },
     {
       title: 'Status', key: 'status',
-      render: (_: any, r: AggregatedStock) => {
-        if (r.reorder_point > 0 && r.total_on_hand < r.reorder_point) return <Tag color="red">Low Stock</Tag>;
-        return <Tag color="green">OK</Tag>;
+      render: (_: unknown, r: AggregatedStock) => {
+        const isLow = r.reorder_point > 0 && r.total_on_hand < r.reorder_point;
+        return isLow
+          ? <Tag color="red">Low Stock</Tag>
+          : <Tag color="green">OK</Tag>;
       },
     },
     { title: 'Reorder Point', dataIndex: 'reorder_point', key: 'rp' },
@@ -48,10 +53,11 @@ const StockLevelsPage: React.FC = () => {
       <PageHeader title="Stock Levels" />
       <Input
         placeholder="Search by name or SKU"
+        aria-label="Search stock levels"
         prefix={<SearchOutlined />}
         value={search}
         onChange={(e) => setSearch(e.target.value)}
-        onPressEnter={() => { setPage(1); load(); }}
+        onPressEnter={() => { setPage(1); }}
         style={{ width: 300, marginBottom: 16 }}
         allowClear
       />

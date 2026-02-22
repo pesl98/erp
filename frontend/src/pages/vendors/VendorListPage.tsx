@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { Table, Tag, Input, Select, Button, Space, message, Popconfirm, Rate } from 'antd';
 import { PlusOutlined, SearchOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
@@ -16,17 +16,25 @@ const VendorListPage: React.FC = () => {
   const [page, setPage] = useState(1);
   const pageSize = 20;
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     try {
       const res = await getVendors({ skip: (page - 1) * pageSize, limit: pageSize, search: search || undefined, status });
       setVendors(res.items);
       setTotal(res.total);
-    } catch { message.error('Failed to load vendors'); }
-    finally { setLoading(false); }
-  };
+    } catch {
+      message.error('Failed to load vendors');
+    } finally {
+      setLoading(false);
+    }
+  }, [page, status, search]);
 
-  useEffect(() => { load(); }, [page, status]);
+  useEffect(() => { load(); }, [load]);
+
+  const handleSearch = () => {
+    setPage(1);
+    load();
+  };
 
   const columns = [
     { title: 'Code', dataIndex: 'code', key: 'code', width: 100 },
@@ -38,10 +46,10 @@ const VendorListPage: React.FC = () => {
     { title: 'Status', dataIndex: 'status', key: 'status', width: 90, render: (s: string) => <Tag color={s === 'active' ? 'green' : 'default'}>{s}</Tag> },
     {
       title: 'Actions', key: 'actions', width: 150,
-      render: (_: any, record: Vendor) => (
+      render: (_: unknown, record: Vendor) => (
         <Space size="small">
           <a onClick={() => navigate(`/vendors/${record.id}/edit`)}>Edit</a>
-          <Popconfirm title="Deactivate?" onConfirm={async () => { await deleteVendor(record.id); message.success('Deactivated'); load(); }}>
+          <Popconfirm title="Deactivate this vendor?" onConfirm={async () => { await deleteVendor(record.id); message.success('Vendor deactivated'); load(); }}>
             <a style={{ color: '#ff4d4f' }}>Deactivate</a>
           </Popconfirm>
         </Space>
@@ -53,8 +61,25 @@ const VendorListPage: React.FC = () => {
     <div>
       <PageHeader title="Vendors" extra={<Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/vendors/new')}>Add Vendor</Button>} />
       <Space style={{ marginBottom: 16 }} wrap>
-        <Input placeholder="Search" prefix={<SearchOutlined />} value={search} onChange={(e) => setSearch(e.target.value)} onPressEnter={() => { setPage(1); load(); }} style={{ width: 250 }} allowClear />
-        <Select placeholder="Status" allowClear style={{ width: 130 }} value={status} onChange={setStatus} options={[{ label: 'Active', value: 'active' }, { label: 'Inactive', value: 'inactive' }]} />
+        <Input
+          placeholder="Search vendors"
+          aria-label="Search vendors"
+          prefix={<SearchOutlined />}
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          onPressEnter={handleSearch}
+          style={{ width: 250 }}
+          allowClear
+        />
+        <Select
+          placeholder="Status"
+          aria-label="Filter by status"
+          allowClear
+          style={{ width: 130 }}
+          value={status}
+          onChange={setStatus}
+          options={[{ label: 'Active', value: 'active' }, { label: 'Inactive', value: 'inactive' }]}
+        />
       </Space>
       <Table columns={columns} dataSource={vendors} rowKey="id" loading={loading} pagination={{ current: page, pageSize, total, onChange: setPage, showTotal: (t) => `${t} vendors` }} />
     </div>

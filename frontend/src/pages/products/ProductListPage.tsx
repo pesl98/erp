@@ -47,7 +47,7 @@ const ProductListPage: React.FC = () => {
     { title: 'Created', dataIndex: 'created_at', key: 'created_at', width: 110, render: formatDate },
     {
       title: 'Actions', key: 'actions', width: 150,
-      render: (_: any, record: Product) => (
+      render: (_: unknown, record: Product) => (
         <Space size="small">
           <a onClick={() => navigate(`/products/${record.id}/edit`)}>Edit</a>
           <Popconfirm title="Deactivate this product?" onConfirm={() => handleDelete(record.id)}>

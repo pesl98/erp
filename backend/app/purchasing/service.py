@@ -106,8 +106,7 @@ class PurchaseOrderService:
             self.db.add(line_item)
 
         await self.db.flush()
-        await self.db.refresh(po)
-        return po
+        return await self.get_purchase_order(po.id)
 
     async def update_purchase_order(
         self, po_id: uuid.UUID, data: PurchaseOrderUpdate
@@ -146,8 +145,7 @@ class PurchaseOrderService:
             po.total_amount = po.subtotal + po.tax_amount
 
         await self.db.flush()
-        await self.db.refresh(po)
-        return po
+        return await self.get_purchase_order(po.id)
 
     async def _transition_status(self, po_id: uuid.UUID, new_status: str, user_id: uuid.UUID | None = None) -> PurchaseOrder:
         po = await self.get_purchase_order(po_id)
@@ -161,8 +159,7 @@ class PurchaseOrderService:
             po.approved_by = user_id
             po.approved_at = datetime.now(timezone.utc)
         await self.db.flush()
-        await self.db.refresh(po)
-        return po
+        return await self.get_purchase_order(po.id)
 
     async def submit_po(self, po_id: uuid.UUID) -> PurchaseOrder:
         return await self._transition_status(po_id, "pending_approval")
@@ -271,5 +268,10 @@ class PurchaseOrderService:
             po.status = "partially_received"
 
         await self.db.flush()
-        await self.db.refresh(receipt)
-        return receipt
+        # Fetch with items loaded for response
+        result = await self.db.execute(
+            select(GoodsReceipt)
+            .options(selectinload(GoodsReceipt.items))
+            .where(GoodsReceipt.id == receipt.id)
+        )
+        return result.scalar_one()

@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getProducts, getCategories, deleteProduct } from '../api/products';
 import { message } from 'antd';
 
-export function useProducts(params: any) {
+export function useProducts(params: Record<string, string | number | undefined>) {
   return useQuery({
     queryKey: ['products', params],
     queryFn: () => getProducts(params),

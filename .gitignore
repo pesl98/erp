@@ -13,3 +13,5 @@ frontend/dist/
 *.db
 .DS_Store
 Thumbs.db
+*.txt
+backend/verify_auth.py

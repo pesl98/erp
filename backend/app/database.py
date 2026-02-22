@@ -1,3 +1,4 @@
+import logging
 import uuid
 from datetime import datetime
 from typing import AsyncGenerator
@@ -7,6 +8,8 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 from app.config import settings
+
+logger = logging.getLogger(__name__)
 
 engine = create_async_engine(settings.DATABASE_URL, echo=False)
 async_session = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
@@ -31,5 +34,6 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
             yield session
             await session.commit()
         except Exception:
+            logger.exception("Database session error, rolling back")
             await session.rollback()
             raise

@@ -3,8 +3,9 @@ import uuid
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.exceptions import ConflictException, NotFoundException
+from app.exceptions import BadRequestException, ConflictException, NotFoundException
 from app.products.models import ProductVendor
+from app.purchasing.models import PurchaseOrder
 
 from .models import Vendor
 from .schemas import ProductVendorCreate, VendorCreate, VendorUpdate
@@ -63,6 +64,21 @@ class VendorService:
 
     async def delete_vendor(self, vendor_id: uuid.UUID) -> Vendor:
         vendor = await self.get_vendor(vendor_id)
+        # Check for active (non-terminal) POs before deactivating
+        active_po_count = (
+            await self.db.execute(
+                select(func.count())
+                .select_from(PurchaseOrder)
+                .where(
+                    PurchaseOrder.vendor_id == vendor_id,
+                    PurchaseOrder.status.notin_(["received", "cancelled"]),
+                )
+            )
+        ).scalar() or 0
+        if active_po_count > 0:
+            raise BadRequestException(
+                f"Cannot deactivate vendor: {active_po_count} active purchase order(s) exist"
+            )
         vendor.status = "inactive"
         await self.db.flush()
         return vendor

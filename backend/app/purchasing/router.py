@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.models import User
 from app.database import get_db
-from app.dependencies import get_current_active_user
+from app.dependencies import get_current_active_user, require_roles
 
 from .schemas import (
     GoodsReceiptCreate,
@@ -84,7 +84,7 @@ async def submit_po(
 async def approve_po(
     po_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(require_roles("admin", "manager")),
 ):
     service = PurchaseOrderService(db)
     return await service.approve_po(po_id, current_user.id)

@@ -2,7 +2,7 @@ import client from './client';
 import type { PurchaseOrder, PurchaseOrderCreate, GoodsReceipt } from '../types/purchasing';
 import type { PaginatedResponse } from '../types/common';
 
-export const getPurchaseOrders = (params?: Record<string, any>): Promise<PaginatedResponse<PurchaseOrder>> =>
+export const getPurchaseOrders = (params?: Record<string, string | number | undefined>): Promise<PaginatedResponse<PurchaseOrder>> =>
   client.get('/purchase-orders', { params }).then((r) => r.data);
 
 export const getPurchaseOrder = (id: string): Promise<PurchaseOrder> =>
@@ -11,7 +11,7 @@ export const getPurchaseOrder = (id: string): Promise<PurchaseOrder> =>
 export const createPurchaseOrder = (data: PurchaseOrderCreate): Promise<PurchaseOrder> =>
   client.post('/purchase-orders', data).then((r) => r.data);
 
-export const updatePurchaseOrder = (id: string, data: any): Promise<PurchaseOrder> =>
+export const updatePurchaseOrder = (id: string, data: Partial<PurchaseOrderCreate>): Promise<PurchaseOrder> =>
   client.put(`/purchase-orders/${id}`, data).then((r) => r.data);
 
 export const submitPO = (id: string): Promise<PurchaseOrder> =>
@@ -26,5 +26,5 @@ export const sendPO = (id: string): Promise<PurchaseOrder> =>
 export const cancelPO = (id: string): Promise<PurchaseOrder> =>
   client.post(`/purchase-orders/${id}/cancel`).then((r) => r.data);
 
-export const receiveGoods = (poId: string, data: any): Promise<GoodsReceipt> =>
+export const receiveGoods = (poId: string, data: { received_date: string; notes?: string; items: { po_line_item_id: string; product_id: string; quantity_received: number; location_id: string }[] }): Promise<GoodsReceipt> =>
   client.post(`/purchase-orders/${poId}/receive`, data).then((r) => r.data);

@@ -25,7 +25,7 @@ export const deleteZone = (zoneId: string): Promise<void> =>
 export const createLocation = (zoneId: string, data: { code: string; label?: string; max_capacity?: number }) =>
   client.post(`/zones/${zoneId}/locations`, data).then((r) => r.data);
 
-export const updateLocation = (locationId: string, data: any) =>
+export const updateLocation = (locationId: string, data: { code?: string; label?: string; max_capacity?: number; is_active?: boolean }) =>
   client.put(`/locations/${locationId}`, data).then((r) => r.data);
 
 export const deleteLocation = (locationId: string): Promise<void> =>

@@ -6,20 +6,37 @@ import {
   WarningOutlined,
   SwapOutlined,
 } from '@ant-design/icons';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useNavigate } from 'react-router-dom';
 import StatCard from '../../components/StatCard';
 import { getDashboardKpis, getRecentActivity } from '../../api/reporting';
 import { getReorderAlerts } from '../../api/inventory';
 import { formatCurrency, formatDateTime } from '../../utils/formatters';
+import type { ReorderAlert } from '../../types/inventory';
 
 const { Title } = Typography;
 
+interface DashboardKpis {
+  total_stock_value: number;
+  pending_po_count: number;
+  low_stock_count: number;
+  movements_today: number;
+}
+
+interface ActivityItem {
+  id: string;
+  type: string;
+  product_id: string;
+  product_sku: string;
+  product_name: string;
+  quantity: number;
+  created_at: string;
+}
+
 const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
-  const [kpis, setKpis] = useState<any>(null);
-  const [activity, setActivity] = useState<any[]>([]);
-  const [alerts, setAlerts] = useState<any[]>([]);
+  const [kpis, setKpis] = useState<DashboardKpis | null>(null);
+  const [activity, setActivity] = useState<ActivityItem[]>([]);
+  const [alerts, setAlerts] = useState<ReorderAlert[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -34,7 +51,7 @@ const DashboardPage: React.FC = () => {
         setActivity(a);
         setAlerts(al);
       } catch (e) {
-        console.error(e);
+        console.error('Failed to load dashboard data', e);
       } finally {
         setLoading(false);
       }
@@ -59,8 +76,11 @@ const DashboardPage: React.FC = () => {
       title: 'On Hand',
       dataIndex: 'total_on_hand',
       key: 'total_on_hand',
-      render: (v: number, r: any) => (
-        <span style={{ color: v < r.reorder_point ? '#ff4d4f' : undefined }}>{v}</span>
+      render: (v: number, r: ReorderAlert) => (
+        <span style={{ color: v < r.reorder_point ? '#ff4d4f' : undefined }}>
+          {v}
+          {v < r.reorder_point && <span className="sr-only"> (below reorder point)</span>}
+        </span>
       ),
     },
     { title: 'Reorder Point', dataIndex: 'reorder_point', key: 'reorder_point' },
@@ -95,7 +115,7 @@ const DashboardPage: React.FC = () => {
             value={kpis?.low_stock_count ?? 0}
             prefix={<WarningOutlined />}
             onClick={() => navigate('/inventory/alerts')}
-            valueStyle={{ color: kpis?.low_stock_count > 0 ? '#ff4d4f' : undefined }}
+            valueStyle={{ color: (kpis?.low_stock_count ?? 0) > 0 ? '#ff4d4f' : undefined }}
           />
         </Col>
         <Col xs={24} sm={12} lg={6}>
@@ -122,7 +142,7 @@ const DashboardPage: React.FC = () => {
         </Col>
         <Col xs={24} lg={12}>
           <Card title="Reorder Alerts" size="small" extra={
-            <a onClick={() => navigate('/inventory/alerts')}>View all</a>
+            <a role="link" tabIndex={0} onClick={() => navigate('/inventory/alerts')} onKeyDown={(e) => e.key === 'Enter' && navigate('/inventory/alerts')}>View all</a>
           }>
             <Table
               columns={alertColumns}

@@ -18,7 +18,7 @@ const PageHeader: React.FC<PageHeaderProps> = ({ title, backPath, extra }) => {
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
       <Space>
         {backPath && (
-          <Button type="text" icon={<ArrowLeftOutlined />} onClick={() => navigate(backPath)} />
+          <Button type="text" icon={<ArrowLeftOutlined />} aria-label="Go back" onClick={() => navigate(backPath)} />
         )}
         <Title level={4} style={{ margin: 0 }}>{title}</Title>
       </Space>

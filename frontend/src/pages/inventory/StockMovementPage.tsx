@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { Table, Tag, Select, Space, message } from 'antd';
 import PageHeader from '../../components/PageHeader';
 import { getMovements } from '../../api/inventory';
@@ -20,17 +20,20 @@ const StockMovementPage: React.FC = () => {
   const [page, setPage] = useState(1);
   const pageSize = 20;
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     try {
       const res = await getMovements({ skip: (page - 1) * pageSize, limit: pageSize, movement_type: movementType });
       setMovements(res.items);
       setTotal(res.total);
-    } catch { message.error('Failed'); }
-    finally { setLoading(false); }
-  };
+    } catch {
+      message.error('Failed to load movements');
+    } finally {
+      setLoading(false);
+    }
+  }, [page, movementType]);
 
-  useEffect(() => { load(); }, [page, movementType]);
+  useEffect(() => { load(); }, [load]);
 
   const columns = [
     { title: 'Type', dataIndex: 'movement_type', key: 'type', render: (t: string) => <Tag color={MOVEMENT_TYPE_COLORS[t]}>{t}</Tag> },
@@ -45,7 +48,13 @@ const StockMovementPage: React.FC = () => {
     <div>
       <PageHeader title="Stock Movements" />
       <Space style={{ marginBottom: 16 }}>
-        <Select placeholder="Movement type" allowClear style={{ width: 180 }} value={movementType} onChange={(v) => { setMovementType(v); setPage(1); }}
+        <Select
+          placeholder="Movement type"
+          aria-label="Filter by movement type"
+          allowClear
+          style={{ width: 180 }}
+          value={movementType}
+          onChange={(v) => { setMovementType(v); setPage(1); }}
           options={[{ label: 'In', value: 'in' }, { label: 'Out', value: 'out' }, { label: 'Transfer', value: 'transfer' }, { label: 'Adjustment', value: 'adjustment' }]}
         />
       </Space>

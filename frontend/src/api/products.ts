@@ -2,7 +2,7 @@ import client from './client';
 import type { Product, ProductCreate, ProductCategory } from '../types/product';
 import type { PaginatedResponse } from '../types/common';
 
-export const getProducts = (params?: Record<string, any>): Promise<PaginatedResponse<Product>> =>
+export const getProducts = (params?: Record<string, string | number | undefined>): Promise<PaginatedResponse<Product>> =>
   client.get('/products', { params }).then((r) => r.data);
 
 export const getProduct = (id: string): Promise<Product> =>

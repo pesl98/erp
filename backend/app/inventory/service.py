@@ -138,12 +138,14 @@ class InventoryService:
     async def create_adjustment(
         self, data: StockAdjustmentCreate, user_id: uuid.UUID
     ) -> StockAdjustment:
-        # Update stock level
+        # Update stock level (lock row to prevent race conditions)
         stock_result = await self.db.execute(
-            select(StockLevel).where(
+            select(StockLevel)
+            .where(
                 StockLevel.product_id == data.product_id,
                 StockLevel.location_id == data.location_id,
             )
+            .with_for_update()
         )
         stock = stock_result.scalar_one_or_none()
         if stock:
@@ -208,24 +210,28 @@ class InventoryService:
         if data.from_location_id == data.to_location_id:
             raise BadRequestException("Source and destination must be different")
 
-        # Debit source
+        # Debit source (lock row to prevent race conditions)
         source_result = await self.db.execute(
-            select(StockLevel).where(
+            select(StockLevel)
+            .where(
                 StockLevel.product_id == data.product_id,
                 StockLevel.location_id == data.from_location_id,
             )
+            .with_for_update()
         )
         source = source_result.scalar_one_or_none()
         if not source or source.quantity_on_hand < data.quantity:
             raise BadRequestException("Insufficient stock at source location")
         source.quantity_on_hand -= data.quantity
 
-        # Credit destination
+        # Credit destination (lock row to prevent race conditions)
         dest_result = await self.db.execute(
-            select(StockLevel).where(
+            select(StockLevel)
+            .where(
                 StockLevel.product_id == data.product_id,
                 StockLevel.location_id == data.to_location_id,
             )
+            .with_for_update()
         )
         dest = dest_result.scalar_one_or_none()
         if dest:

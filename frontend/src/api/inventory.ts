@@ -2,7 +2,7 @@ import client from './client';
 import type { AggregatedStock, ReorderAlert, StockAdjustmentCreate, StockMovement, StockTransferCreate } from '../types/inventory';
 import type { PaginatedResponse } from '../types/common';
 
-export const getStockLevels = (params?: Record<string, any>): Promise<PaginatedResponse<AggregatedStock>> =>
+export const getStockLevels = (params?: Record<string, string | number | undefined>): Promise<PaginatedResponse<AggregatedStock>> =>
   client.get('/inventory/stock-levels', { params }).then((r) => r.data);
 
 export const getStockByLocation = (productId?: string) =>
@@ -20,10 +20,10 @@ export const getReorderAlerts = (): Promise<ReorderAlert[]> =>
 export const createAdjustment = (data: StockAdjustmentCreate) =>
   client.post('/inventory/adjustments', data).then((r) => r.data);
 
-export const getAdjustments = (params?: Record<string, any>) =>
+export const getAdjustments = (params?: Record<string, string | number | undefined>) =>
   client.get('/inventory/adjustments', { params }).then((r) => r.data);
 
-export const getMovements = (params?: Record<string, any>): Promise<PaginatedResponse<StockMovement>> =>
+export const getMovements = (params?: Record<string, string | number | undefined>): Promise<PaginatedResponse<StockMovement>> =>
   client.get('/inventory/movements', { params }).then((r) => r.data);
 
 export const createTransfer = (data: StockTransferCreate) =>

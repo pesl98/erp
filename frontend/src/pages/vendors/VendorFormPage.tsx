@@ -3,6 +3,7 @@ import { Form, Input, InputNumber, Select, Button, Card, Row, Col, message, Spin
 import { useNavigate, useParams } from 'react-router-dom';
 import PageHeader from '../../components/PageHeader';
 import { createVendor, getVendor, updateVendor } from '../../api/vendors';
+import type { VendorCreate } from '../../types/vendor';
 
 const VendorFormPage: React.FC = () => {
   const navigate = useNavigate();
@@ -19,13 +20,16 @@ const VendorFormPage: React.FC = () => {
     }
   }, [id]);
 
-  const onFinish = async (values: any) => {
+  const onFinish = async (values: VendorCreate) => {
     setSubmitting(true);
     try {
-      if (isEdit) { await updateVendor(id!, values); message.success('Updated'); }
-      else { await createVendor(values); message.success('Created'); }
+      if (isEdit) { await updateVendor(id!, values); message.success('Vendor updated'); }
+      else { await createVendor(values); message.success('Vendor created'); }
       navigate('/vendors');
-    } catch (err: any) { message.error(err.response?.data?.detail || 'Error'); }
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { data?: { detail?: string } } };
+      message.error(axiosErr.response?.data?.detail || 'Error saving vendor');
+    }
     finally { setSubmitting(false); }
   };
 

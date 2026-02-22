@@ -3,7 +3,7 @@ import { Form, Input, InputNumber, Select, Button, Card, Row, Col, message, Spin
 import { useNavigate, useParams } from 'react-router-dom';
 import PageHeader from '../../components/PageHeader';
 import { createProduct, getProduct, updateProduct, getCategories } from '../../api/products';
-import type { ProductCategory } from '../../types/product';
+import type { ProductCategory, ProductCreate } from '../../types/product';
 import { UOM_OPTIONS } from '../../utils/constants';
 
 const ProductFormPage: React.FC = () => {
@@ -28,7 +28,7 @@ const ProductFormPage: React.FC = () => {
     }
   }, [id]);
 
-  const onFinish = async (values: any) => {
+  const onFinish = async (values: ProductCreate) => {
     setSubmitting(true);
     try {
       if (isEdit) {
@@ -39,8 +39,9 @@ const ProductFormPage: React.FC = () => {
         message.success('Product created');
       }
       navigate('/products');
-    } catch (err: any) {
-      message.error(err.response?.data?.detail || 'Error saving product');
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { data?: { detail?: string } } };
+      message.error(axiosErr.response?.data?.detail || 'Error saving product');
     } finally {
       setSubmitting(false);
     }

@@ -1,15 +1,46 @@
 import React, { useEffect, useState } from 'react';
-import { Tabs, Table, Card, Spin, message, Rate } from 'antd';
+import { Tabs, Table, Card, message, Rate, Tag } from 'antd';
 import PageHeader from '../../components/PageHeader';
 import { getStockSummary, getPurchaseHistory, getVendorPerformance } from '../../api/reporting';
 import { formatCurrency, formatDate } from '../../utils/formatters';
 import { PO_STATUS_COLORS, PO_STATUS_LABELS } from '../../utils/constants';
-import { Tag } from 'antd';
+
+interface StockSummaryItem {
+  product_id: string;
+  sku: string;
+  name: string;
+  total_on_hand: number;
+  total_reserved: number;
+  total_available: number;
+  cost_price: number | null;
+  stock_value: number | null;
+}
+
+interface PurchaseHistoryItem {
+  po_id: string;
+  po_number: string;
+  status: string;
+  total_amount: number;
+  order_date: string | null;
+  created_at: string;
+  vendor_code: string;
+  vendor_name: string;
+}
+
+interface VendorPerformanceItem {
+  vendor_id: string;
+  vendor_code: string;
+  vendor_name: string;
+  rating: number | null;
+  order_count: number;
+  total_spend: number;
+  avg_lead_time: number | null;
+}
 
 const ReportsPage: React.FC = () => {
-  const [stockData, setStockData] = useState<any[]>([]);
-  const [purchaseData, setPurchaseData] = useState<any[]>([]);
-  const [vendorData, setVendorData] = useState<any[]>([]);
+  const [stockData, setStockData] = useState<StockSummaryItem[]>([]);
+  const [purchaseData, setPurchaseData] = useState<PurchaseHistoryItem[]>([]);
+  const [vendorData, setVendorData] = useState<VendorPerformanceItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('stock');
 

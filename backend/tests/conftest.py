@@ -34,10 +34,10 @@ def override_user():
     return User(
         id=uuid.uuid4(),
         email="test@example.com",
-        username="testuser",
+        full_name="Test User",
         hashed_password="foo",
+        role="admin",
         is_active=True,
-        is_superuser=True
     )
 
 @pytest.fixture

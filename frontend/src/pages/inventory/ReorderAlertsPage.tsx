@@ -11,7 +11,7 @@ const ReorderAlertsPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    getReorderAlerts().then(setAlerts).catch(() => message.error('Failed')).finally(() => setLoading(false));
+    getReorderAlerts().then(setAlerts).catch(() => message.error('Failed to load reorder alerts')).finally(() => setLoading(false));
   }, []);
 
   const columns = [
@@ -23,7 +23,16 @@ const ReorderAlertsPage: React.FC = () => {
     { title: 'Deficit', dataIndex: 'deficit', key: 'deficit', render: (v: number) => <Tag color="red">-{v}</Tag> },
     {
       title: 'Action', key: 'action',
-      render: () => <Button size="small" type="primary" onClick={() => navigate('/purchase-orders/new')}>Create PO</Button>,
+      render: (_: unknown, record: ReorderAlert) => (
+        <Button
+          size="small"
+          type="primary"
+          aria-label={`Create purchase order for ${record.product_name}`}
+          onClick={() => navigate(`/purchase-orders/new?product=${record.product_id}&qty=${record.reorder_quantity}`)}
+        >
+          Create PO
+        </Button>
+      ),
     },
   ];
 

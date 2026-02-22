@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { Form, Select, InputNumber, Input, Button, Card, Row, Col, message, Table, Tag } from 'antd';
 import PageHeader from '../../components/PageHeader';
 import { createAdjustment, getAdjustments } from '../../api/inventory';
@@ -7,15 +7,30 @@ import { getWarehouses, getWarehouse } from '../../api/warehouse';
 import { ADJUSTMENT_TYPES } from '../../utils/constants';
 import { formatDateTime } from '../../utils/formatters';
 import type { Product } from '../../types/product';
+import type { StockAdjustmentCreate } from '../../types/inventory';
+
+interface LocationOption {
+  id: string;
+  label: string;
+}
+
+interface AdjustmentRecord {
+  id: string;
+  product_id: string;
+  adjustment_type: string;
+  quantity_change: number;
+  reason: string;
+  created_at: string;
+}
 
 const StockAdjustmentPage: React.FC = () => {
   const [form] = Form.useForm();
   const [products, setProducts] = useState<Product[]>([]);
-  const [locations, setLocations] = useState<{ id: string; label: string }[]>([]);
-  const [adjustments, setAdjustments] = useState<any[]>([]);
+  const [locations, setLocations] = useState<LocationOption[]>([]);
+  const [adjustments, setAdjustments] = useState<AdjustmentRecord[]>([]);
   const [submitting, setSubmitting] = useState(false);
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       const [prods, whs, adjRes] = await Promise.all([
         getProducts({ limit: 100 }),
@@ -25,7 +40,7 @@ const StockAdjustmentPage: React.FC = () => {
       setProducts(prods.items);
       setAdjustments(adjRes.items);
 
-      const locs: { id: string; label: string }[] = [];
+      const locs: LocationOption[] = [];
       for (const wh of whs) {
         const detail = await getWarehouse(wh.id);
         detail.zones?.forEach((z) => z.locations.forEach((l) => {
@@ -33,20 +48,26 @@ const StockAdjustmentPage: React.FC = () => {
         }));
       }
       setLocations(locs);
-    } catch { message.error('Failed to load data'); }
-  };
+    } catch {
+      message.error('Failed to load data');
+    }
+  }, []);
 
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => { loadData(); }, [loadData]);
 
-  const onFinish = async (values: any) => {
+  const onFinish = async (values: StockAdjustmentCreate) => {
     setSubmitting(true);
     try {
       await createAdjustment(values);
       message.success('Adjustment created');
       form.resetFields();
       loadData();
-    } catch (err: any) { message.error(err.response?.data?.detail || 'Error'); }
-    finally { setSubmitting(false); }
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { data?: { detail?: string } } };
+      message.error(axiosErr.response?.data?.detail || 'Error creating adjustment');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const columns = [
@@ -65,22 +86,22 @@ const StockAdjustmentPage: React.FC = () => {
           <Row gutter={16}>
             <Col span={6}>
               <Form.Item name="product_id" label="Product" rules={[{ required: true }]}>
-                <Select showSearch optionFilterProp="label" placeholder="Select" options={products.map((p) => ({ label: `${p.sku} - ${p.name}`, value: p.id }))} />
+                <Select showSearch optionFilterProp="label" placeholder="Select product" aria-label="Select product" options={products.map((p) => ({ label: `${p.sku} - ${p.name}`, value: p.id }))} />
               </Form.Item>
             </Col>
             <Col span={6}>
               <Form.Item name="location_id" label="Location" rules={[{ required: true }]}>
-                <Select showSearch optionFilterProp="label" placeholder="Select" options={locations.map((l) => ({ label: l.label, value: l.id }))} />
+                <Select showSearch optionFilterProp="label" placeholder="Select location" aria-label="Select location" options={locations.map((l) => ({ label: l.label, value: l.id }))} />
               </Form.Item>
             </Col>
             <Col span={4}>
               <Form.Item name="adjustment_type" label="Type" rules={[{ required: true }]}>
-                <Select options={ADJUSTMENT_TYPES} />
+                <Select options={ADJUSTMENT_TYPES} aria-label="Adjustment type" />
               </Form.Item>
             </Col>
             <Col span={4}>
               <Form.Item name="quantity_change" label="Qty Change" rules={[{ required: true }]}>
-                <InputNumber style={{ width: '100%' }} />
+                <InputNumber style={{ width: '100%' }} aria-label="Quantity change" />
               </Form.Item>
             </Col>
           </Row>

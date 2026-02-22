@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ConfigProvider } from 'antd';
+import ErrorBoundary from './components/ErrorBoundary';
 import { AuthProvider } from './auth/AuthContext';
 import ProtectedRoute from './auth/ProtectedRoute';
 import LoginPage from './auth/LoginPage';
@@ -35,6 +36,7 @@ const App: React.FC = () => {
           },
         }}
       >
+        <ErrorBoundary>
         <BrowserRouter>
           <AuthProvider>
             <Routes>
@@ -70,6 +72,7 @@ const App: React.FC = () => {
             </Routes>
           </AuthProvider>
         </BrowserRouter>
+        </ErrorBoundary>
       </ConfigProvider>
     </QueryClientProvider>
   );

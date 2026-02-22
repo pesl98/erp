@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { Table, Tag, Button, Select, Space, message, Tabs } from 'antd';
+import React, { useEffect, useState, useCallback } from 'react';
+import { Table, Tag, Button, message, Tabs } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import PageHeader from '../../components/PageHeader';
@@ -17,17 +17,20 @@ const PurchaseOrderListPage: React.FC = () => {
   const [page, setPage] = useState(1);
   const pageSize = 20;
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     try {
       const res = await getPurchaseOrders({ skip: (page - 1) * pageSize, limit: pageSize, status });
       setOrders(res.items);
       setTotal(res.total);
-    } catch { message.error('Failed to load'); }
-    finally { setLoading(false); }
-  };
+    } catch {
+      message.error('Failed to load purchase orders');
+    } finally {
+      setLoading(false);
+    }
+  }, [page, status]);
 
-  useEffect(() => { load(); }, [page, status]);
+  useEffect(() => { load(); }, [load]);
 
   const columns = [
     { title: 'PO Number', dataIndex: 'po_number', key: 'po_number', render: (v: string, r: PurchaseOrder) => <a onClick={() => navigate(`/purchase-orders/${r.id}`)}>{v}</a> },
@@ -36,7 +39,7 @@ const PurchaseOrderListPage: React.FC = () => {
     { title: 'Expected Delivery', dataIndex: 'expected_delivery_date', key: 'expected_delivery_date', render: formatDate },
     { title: 'Subtotal', dataIndex: 'subtotal', key: 'subtotal', render: formatCurrency },
     { title: 'Total', dataIndex: 'total_amount', key: 'total_amount', render: formatCurrency },
-    { title: 'Items', key: 'items', render: (_: any, r: PurchaseOrder) => r.line_items?.length || 0 },
+    { title: 'Items', key: 'items', render: (_: unknown, r: PurchaseOrder) => r.line_items?.length || 0 },
     { title: 'Created', dataIndex: 'created_at', key: 'created_at', render: formatDate },
   ];
 
