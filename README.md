@@ -2,6 +2,32 @@
 
 A full-stack ERP application for webshop operations management, built with FastAPI, React, TypeScript, and PostgreSQL.
 
+## Goal and Project Plan
+
+### Vision: AI-First Autonomous ERP
+
+The ultimate goal is to replace traditional ERP workflows with AI agents that operate directly on the database.
+
+#### Current (v1)
+- Traditional ERP with frontend UI
+- Human clicks buttons → API → Database
+
+#### Future (v2+)
+- AI Agents → MCP → PostgreSQL (no frontend needed)
+- Each agent has **constraints + tasks**, runs autonomously
+- Constraint checking done by the LLM itself (predicate calculus)
+- Owner defines constraints only — does not make day-to-day decisions
+
+#### Example
+```
+Owner: "Buyer agent can spend max €10K per order, only from approved vendors, lead time < 2 weeks"
+Agent: *autonomously* → checks stock → finds vendor → places order → updates DB
+```
+
+**Key insight:** The owner becomes a system architect, not an operator.
+
+---
+
 ## Screenshots
 
 ![Edit Warehouse](warehouse-edit-screenshot.jpg)
