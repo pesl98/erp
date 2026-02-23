@@ -98,16 +98,14 @@ class ProductService:
         product = Product(**data.model_dump())
         self.db.add(product)
         await self.db.flush()
-        await self.db.refresh(product)
-        return product
+        return await self.get_product(product.id)
 
     async def update_product(self, product_id: uuid.UUID, data: ProductUpdate) -> Product:
         product = await self.get_product(product_id)
         for key, value in data.model_dump(exclude_unset=True).items():
             setattr(product, key, value)
         await self.db.flush()
-        await self.db.refresh(product)
-        return product
+        return await self.get_product(product_id)
 
     async def delete_product(self, product_id: uuid.UUID) -> Product:
         product = await self.get_product(product_id)

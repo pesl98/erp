@@ -6,6 +6,7 @@ import PageHeader from '../../components/PageHeader';
 import { createWarehouse, getWarehouse, updateWarehouse, createZone, deleteZone, createLocation, deleteLocation } from '../../api/warehouse';
 import { ZONE_TYPES } from '../../utils/constants';
 import type { Warehouse, Zone } from '../../types/warehouse';
+import { extractErrorMessage } from '../../utils/formatters';
 
 interface WarehouseFormValues {
   code: string;
@@ -58,8 +59,7 @@ const WarehouseFormPage: React.FC = () => {
       }
       loadWarehouse();
     } catch (err: unknown) {
-      const axiosErr = err as { response?: { data?: { detail?: string } } };
-      message.error(axiosErr.response?.data?.detail || 'Error saving warehouse');
+      message.error(extractErrorMessage(err, 'Error saving warehouse'));
     } finally {
       setSubmitting(false);
     }
@@ -73,8 +73,7 @@ const WarehouseFormPage: React.FC = () => {
       zoneForm.resetFields();
       loadWarehouse();
     } catch (err: unknown) {
-      const axiosErr = err as { response?: { data?: { detail?: string } } };
-      message.error(axiosErr.response?.data?.detail || 'Error adding zone');
+      message.error(extractErrorMessage(err, 'Error adding zone'));
     }
   };
 
@@ -86,8 +85,7 @@ const WarehouseFormPage: React.FC = () => {
       locForm.resetFields();
       loadWarehouse();
     } catch (err: unknown) {
-      const axiosErr = err as { response?: { data?: { detail?: string } } };
-      message.error(axiosErr.response?.data?.detail || 'Error adding location');
+      message.error(extractErrorMessage(err, 'Error adding location'));
     }
   };
 

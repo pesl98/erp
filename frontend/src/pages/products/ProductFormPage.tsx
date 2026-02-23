@@ -5,6 +5,7 @@ import PageHeader from '../../components/PageHeader';
 import { createProduct, getProduct, updateProduct, getCategories } from '../../api/products';
 import type { ProductCategory, ProductCreate } from '../../types/product';
 import { UOM_OPTIONS } from '../../utils/constants';
+import { extractErrorMessage } from '../../utils/formatters';
 
 const ProductFormPage: React.FC = () => {
   const navigate = useNavigate();
@@ -40,8 +41,7 @@ const ProductFormPage: React.FC = () => {
       }
       navigate('/products');
     } catch (err: unknown) {
-      const axiosErr = err as { response?: { data?: { detail?: string } } };
-      message.error(axiosErr.response?.data?.detail || 'Error saving product');
+      message.error(extractErrorMessage(err, 'Error saving product'));
     } finally {
       setSubmitting(false);
     }

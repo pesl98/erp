@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.database import get_db
-from app.exceptions import BadRequestException, NotFoundException
+from app.exceptions import UnauthorizedException
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
@@ -53,12 +53,12 @@ async def get_current_user(
         user_id = payload.get("sub")
         token_type = payload.get("type")
         if user_id is None or token_type != "access":
-            raise BadRequestException(detail="Invalid token")
+            raise UnauthorizedException(detail="Invalid token")
     except JWTError:
-        raise BadRequestException(detail="Invalid token")
+        raise UnauthorizedException(detail="Invalid token")
 
     result = await db.execute(select(User).where(User.id == uuid.UUID(user_id)))
     user = result.scalar_one_or_none()
     if user is None:
-        raise NotFoundException(detail="User not found")
+        raise UnauthorizedException(detail="Invalid token")
     return user

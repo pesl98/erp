@@ -5,6 +5,7 @@ import dayjs from 'dayjs';
 import PageHeader from '../../components/PageHeader';
 import { getPurchaseOrder, receiveGoods } from '../../api/purchasing';
 import { getWarehouses, getWarehouse } from '../../api/warehouse';
+import { extractErrorMessage } from '../../utils/formatters';
 import type { PurchaseOrder, POLineItem } from '../../types/purchasing';
 
 interface ReceiptItem {
@@ -80,8 +81,7 @@ const GoodsReceiptPage: React.FC = () => {
       message.success('Goods received successfully');
       navigate(`/purchase-orders/${poId}`);
     } catch (err: unknown) {
-      const axiosErr = err as { response?: { data?: { detail?: string } } };
-      message.error(axiosErr.response?.data?.detail || 'Failed to receive goods');
+      message.error(extractErrorMessage(err, 'Failed to receive goods'));
     } finally {
       setSubmitting(false);
     }

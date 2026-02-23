@@ -1,12 +1,14 @@
 import uuid
 
 from fastapi import APIRouter, Depends
+from jose import JWTError, jwt
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import settings
 from app.database import get_db
-from app.dependencies import get_current_active_user
-from app.exceptions import BadRequestException, ConflictException
+from app.dependencies import get_current_active_user, require_roles
+from app.exceptions import BadRequestException, ConflictException, UnauthorizedException
 
 from .models import User
 from .schemas import (
@@ -27,7 +29,11 @@ router = APIRouter()
 
 
 @router.post("/register", response_model=UserResponse, status_code=201)
-async def register(data: UserCreate, db: AsyncSession = Depends(get_db)):
+async def register(
+    data: UserCreate,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_roles("admin")),
+):
     existing = await db.execute(select(User).where(User.email == data.email))
     if existing.scalar_one_or_none():
         raise ConflictException(detail="Email already registered")
@@ -61,22 +67,19 @@ async def login(data: LoginRequest, db: AsyncSession = Depends(get_db)):
 
 @router.post("/refresh", response_model=TokenResponse)
 async def refresh_token(data: RefreshRequest, db: AsyncSession = Depends(get_db)):
-    from jose import JWTError, jwt
-    from app.config import settings
-
     try:
         payload = jwt.decode(data.refresh_token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         user_id = payload.get("sub")
         token_type = payload.get("type")
         if not user_id or token_type != "refresh":
-            raise BadRequestException(detail="Invalid refresh token")
+            raise UnauthorizedException(detail="Invalid refresh token")
     except JWTError:
-        raise BadRequestException(detail="Invalid refresh token")
+        raise UnauthorizedException(detail="Invalid refresh token")
 
     result = await db.execute(select(User).where(User.id == uuid.UUID(user_id)))
     user = result.scalar_one_or_none()
     if not user or not user.is_active:
-        raise BadRequestException(detail="Invalid refresh token")
+        raise UnauthorizedException(detail="Invalid refresh token")
 
     return TokenResponse(
         access_token=create_access_token(str(user.id)),
