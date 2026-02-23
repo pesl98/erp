@@ -179,8 +179,7 @@ class PurchaseOrderService:
             raise BadRequestException(f"Cannot cancel PO in '{po.status}' status")
         po.status = "cancelled"
         await self.db.flush()
-        await self.db.refresh(po)
-        return po
+        return await self.get_purchase_order(po_id)
 
     async def receive_goods(
         self, po_id: uuid.UUID, data: GoodsReceiptCreate, user_id: uuid.UUID
@@ -227,10 +226,12 @@ class PurchaseOrderService:
 
             # Update stock level
             stock_result = await self.db.execute(
-                select(StockLevel).where(
+                select(StockLevel)
+                .where(
                     StockLevel.product_id == item_data.product_id,
                     StockLevel.location_id == item_data.location_id,
                 )
+                .with_for_update()
             )
             stock = stock_result.scalar_one_or_none()
             if stock:

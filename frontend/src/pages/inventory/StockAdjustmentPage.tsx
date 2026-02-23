@@ -5,7 +5,7 @@ import { createAdjustment, getAdjustments } from '../../api/inventory';
 import { getProducts } from '../../api/products';
 import { getWarehouses, getWarehouse } from '../../api/warehouse';
 import { ADJUSTMENT_TYPES } from '../../utils/constants';
-import { formatDateTime } from '../../utils/formatters';
+import { formatDateTime, extractErrorMessage } from '../../utils/formatters';
 import type { Product } from '../../types/product';
 import type { StockAdjustmentCreate } from '../../types/inventory';
 
@@ -63,8 +63,7 @@ const StockAdjustmentPage: React.FC = () => {
       form.resetFields();
       loadData();
     } catch (err: unknown) {
-      const axiosErr = err as { response?: { data?: { detail?: string } } };
-      message.error(axiosErr.response?.data?.detail || 'Error creating adjustment');
+      message.error(extractErrorMessage(err, 'Error creating adjustment'));
     } finally {
       setSubmitting(false);
     }

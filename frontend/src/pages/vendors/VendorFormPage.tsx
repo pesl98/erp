@@ -4,6 +4,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import PageHeader from '../../components/PageHeader';
 import { createVendor, getVendor, updateVendor } from '../../api/vendors';
 import type { VendorCreate } from '../../types/vendor';
+import { extractErrorMessage } from '../../utils/formatters';
 
 const VendorFormPage: React.FC = () => {
   const navigate = useNavigate();
@@ -27,8 +28,7 @@ const VendorFormPage: React.FC = () => {
       else { await createVendor(values); message.success('Vendor created'); }
       navigate('/vendors');
     } catch (err: unknown) {
-      const axiosErr = err as { response?: { data?: { detail?: string } } };
-      message.error(axiosErr.response?.data?.detail || 'Error saving vendor');
+      message.error(extractErrorMessage(err, 'Error saving vendor'));
     }
     finally { setSubmitting(false); }
   };

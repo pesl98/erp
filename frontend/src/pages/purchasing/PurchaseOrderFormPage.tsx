@@ -8,7 +8,7 @@ import { createPurchaseOrder, getPurchaseOrder, updatePurchaseOrder, submitPO, a
 import { getVendors } from '../../api/vendors';
 import { getProducts } from '../../api/products';
 import { PO_STATUS_COLORS, PO_STATUS_LABELS } from '../../utils/constants';
-import { formatCurrency } from '../../utils/formatters';
+import { formatCurrency, extractErrorMessage } from '../../utils/formatters';
 import type { PurchaseOrder, POLineItemCreate } from '../../types/purchasing';
 import type { Vendor } from '../../types/vendor';
 import type { Product } from '../../types/product';
@@ -132,18 +132,7 @@ const PurchaseOrderFormPage: React.FC = () => {
       }
       navigate(`/purchase-orders/${id}`);
     } catch (err: unknown) {
-      console.error('Error saving PO:', err);
-      const axiosErr = err as { response?: { data?: { detail?: string | Array<{ msg: string }> } } };
-      let errorMsg = 'Error saving purchase order';
-
-      const detail = axiosErr.response?.data?.detail;
-      if (Array.isArray(detail)) {
-        errorMsg = detail.map(d => d.msg).join(', ');
-      } else if (typeof detail === 'string') {
-        errorMsg = detail;
-      }
-
-      message.error(errorMsg);
+      message.error(extractErrorMessage(err, 'Error saving purchase order'));
     } finally {
       setSubmitting(false);
     }
@@ -152,8 +141,7 @@ const PurchaseOrderFormPage: React.FC = () => {
   const handleAction = async (action: () => Promise<unknown>, label: string) => {
     try { await action(); message.success(label); navigate(0); }
     catch (err: unknown) {
-      const axiosErr = err as { response?: { data?: { detail?: string } } };
-      message.error(axiosErr.response?.data?.detail || 'Action failed');
+      message.error(extractErrorMessage(err, 'Action failed'));
     }
   };
 
@@ -169,8 +157,14 @@ const PurchaseOrderFormPage: React.FC = () => {
           options={products.map((p) => ({ label: `${p.sku} - ${p.name}`, value: p.id }))}
           onChange={(val) => {
             const prod = products.find((p) => p.id === val);
-            updateLine(lineItems[i].key, 'product_id', val);
-            if (prod?.cost_price) updateLine(lineItems[i].key, 'unit_price', prod.cost_price);
+            const key = lineItems[i].key;
+            setLineItems((prev) =>
+              prev.map((l) =>
+                l.key === key
+                  ? { ...l, product_id: val, unit_price: prod?.cost_price ?? l.unit_price }
+                  : l
+              )
+            );
           }}
         />
       ),

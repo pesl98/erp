@@ -84,7 +84,7 @@ async def submit_po(
 async def approve_po(
     po_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_roles("admin", "manager")),
+    current_user: User = Depends(require_roles("admin")),
 ):
     service = PurchaseOrderService(db)
     return await service.approve_po(po_id, current_user.id)

@@ -67,10 +67,15 @@ async def rate_limit_auth(request: Request, call_next):
     if request.url.path.startswith("/api/v1/auth/") and request.method == "POST":
         client_ip = request.client.host if request.client else "unknown"
         now = time.time()
-        # Prune old entries
+        # Prune old entries for this IP
         _rate_limit_store[client_ip] = [
             t for t in _rate_limit_store[client_ip] if now - t < RATE_LIMIT_WINDOW
         ]
+        # Periodically evict IPs that have no recent requests to prevent memory growth
+        if len(_rate_limit_store) > 10_000:
+            stale_ips = [ip for ip, ts in _rate_limit_store.items() if not ts]
+            for ip in stale_ips:
+                del _rate_limit_store[ip]
         if len(_rate_limit_store[client_ip]) >= RATE_LIMIT_MAX_REQUESTS:
             logger.warning("Rate limit exceeded for %s on %s", client_ip, request.url.path)
             return JSONResponse(

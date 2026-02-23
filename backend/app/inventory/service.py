@@ -173,7 +173,6 @@ class InventoryService:
         self.db.add(adjustment)
 
         # Create movement record
-        movement_type = "in" if data.quantity_change > 0 else "out"
         movement = StockMovement(
             movement_type="adjustment",
             product_id=data.product_id,
